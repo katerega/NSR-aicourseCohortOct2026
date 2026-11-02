@@ -1,0 +1,167 @@
+{
+  "name": "AI Invoice Processing and PO Reconciliation",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Invoice Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-processing",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2",
+      "name": "Extract PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Prepare Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300],
+      "parameters": {
+        "jsCode": "const text = $json.text || ''; if (!text.trim()) throw new Error('No PDF text extracted'); return [{json:{extractedText:text,processingId:'INV-'+Date.now()}}];"
+      }
+    },
+    {
+      "id": "4",
+      "name": "AI Invoice Extraction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ {model:'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[{role:'system',content:'Extract invoice data accurately. Return JSON only. Use null for missing fields.'},{role:'user',content:'Extract invoice_number, vendor_name, vendor_tax_id, invoice_date, due_date, currency, purchase_order_number, subtotal, tax_amount, total_amount, line_items (description, sku, quantity, unit_price, line_total). Invoice text: '+$json.extractedText}]} }}"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Parse Invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300],
+      "parameters": {
+        "jsCode": "const raw=$json.choices?.[0]?.message?.content; if(!raw) throw new Error('Missing AI response'); const invoice=JSON.parse(raw); if(!invoice.invoice_number || !invoice.vendor_name || !Number.isFinite(Number(invoice.total_amount))) throw new Error('Required invoice fields missing'); return [{json:{processingId:'INV-'+Date.now(),invoice}}];"
+      }
+    },
+    {
+      "id": "6",
+      "name": "PO Number Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{$json.invoice.purchase_order_number || ''}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "7",
+      "name": "Get Purchase Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1500, 150],
+      "parameters": {
+        "method": "GET",
+        "url": "={{'https://YOUR-ERP.example.com/api/purchase-orders/'+encodeURIComponent($json.invoice.purchase_order_number)}}",
+        "options": {}
+      }
+    },
+    {
+      "id": "8",
+      "name": "Reconcile PO",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1750, 150],
+      "parameters": {
+        "jsCode": "const inv=$('Parse Invoice').first().json; const po=$json; const a=inv.invoice; const d=[]; if(!po || !po.vendor_name || !po.total_amount) throw new Error('Invalid PO response'); if(String(a.vendor_name).toLowerCase().trim()!==String(po.vendor_name).toLowerCase().trim()) d.push('VENDOR_MISMATCH'); if(Math.abs(Number(a.total_amount)-Number(po.total_amount))>0.01) d.push('TOTAL_MISMATCH'); if(!Array.isArray(a.line_items)||!Array.isArray(po.line_items)) d.push('LINE_ITEMS_UNVERIFIED'); else for(const l of a.line_items){const p=po.line_items.find(x=>l.sku&&x.sku?String(l.sku)===String(x.sku):String(l.description||'').toLowerCase().trim()===String(x.description||'').toLowerCase().trim()); if(!p){d.push('LINE_NOT_ON_PO');continue;} if(Number(l.quantity)>Number(p.quantity))d.push('QUANTITY_OVER_PO'); if(Math.abs(Number(l.unit_price)-Number(p.unit_price))>0.01)d.push('PRICE_MISMATCH');} return [{json:{processingId:inv.processingId,invoice:a,reconciliation:{status:d.length?'EXCEPTION':'MATCHED',discrepancies:d,approvalRequired:true}}}];"
+      }
+    },
+    {
+      "id": "9",
+      "name": "Missing PO Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 450],
+      "parameters": {
+        "jsCode": "const x=$json; return [{json:{processingId:x.processingId,invoice:x.invoice,reconciliation:{status:'EXCEPTION',discrepancies:['MISSING_PURCHASE_ORDER'],approvalRequired:true}}}];"
+      }
+    },
+    {
+      "id": "10",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300],
+      "parameters": {
+        "jsCode": "const x=$json; return [{json:{status:x.reconciliation.status,processingId:x.processingId,invoiceNumber:x.invoice.invoice_number,vendor:x.invoice.vendor_name,amount:x.invoice.total_amount,currency:x.invoice.currency,reconciliation:x.reconciliation,message:'Invoice processed. Human approval required before accounting posting.'}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Invoice Webhook": {
+      "main": [[{"node":"Extract PDF","type":"main","index":0}]]
+    },
+    "Extract PDF": {
+      "main": [[{"node":"Prepare Text","type":"main","index":0}]]
+    },
+    "Prepare Text": {
+      "main": [[{"node":"AI Invoice Extraction","type":"main","index":0}]]
+    },
+    "AI Invoice Extraction": {
+      "main": [[{"node":"Parse Invoice","type":"main","index":0}]]
+    },
+    "Parse Invoice": {
+      "main": [[{"node":"PO Number Present","type":"main","index":0}]]
+    },
+    "PO Number Present": {
+      "main": [
+        [{"node":"Get Purchase Order","type":"main","index":0}],
+        [{"node":"Missing PO Result","type":"main","index":0}]
+      ]
+    },
+    "Get Purchase Order": {
+      "main": [[{"node":"Reconcile PO","type":"main","index":0}]]
+    },
+    "Reconcile PO": {
+      "main": [[{"node":"Return Result","type":"main","index":0}]]
+    },
+    "Missing PO Result": {
+      "main": [[{"node":"Return Result","type":"main","index":0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "invoice-processing-v2",
+  "tags": []
+}
