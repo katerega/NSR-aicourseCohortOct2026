@@ -1,0 +1,419 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice Intelligence | Finance Dashboard</title>
+<style>
+:root{
+  --bg:#f5f7fb;--card:#fff;--ink:#172033;
+  --muted:#788397;--line:#e9edf3;--blue:#345cf5;
+  --green:#15966a;--red:#dc5252;--amber:#c88722;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Arial,sans-serif;
+background:var(--bg);color:var(--ink)}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:245px;background:#101a30;color:white;
+padding:25px 17px;flex-shrink:0}
+.brand{font-size:18px;font-weight:800;padding:5px 10px 30px}
+.brand span{color:#7290ff}
+.section-label{font-size:10px;color:#78869e;
+letter-spacing:1.5px;margin:22px 10px 10px}
+.nav{display:flex;align-items:center;gap:12px;
+padding:12px;border-radius:8px;color:#aeb9cc;
+font-size:13px;margin:3px 0}
+.nav.active{background:#263c69;color:white}
+.nav:hover{background:#263c69}
+.nav .ico{width:20px;text-align:center}
+.sidebar-bottom{margin-top:70px;padding:12px;
+font-size:12px;color:#9caac0;line-height:1.8}
+.main{flex:1;min-width:0}
+.topbar{height:70px;background:white;border-bottom:1px solid var(--line);
+display:flex;align-items:center;justify-content:space-between;
+padding:0 30px}
+.search{border:1px solid var(--line);padding:10px 13px;
+border-radius:8px;width:260px;max-width:45%;outline:none}
+.user{display:flex;align-items:center;gap:10px;font-size:13px}
+.avatar{background:#e5ebff;color:#345cf5;border-radius:50%;
+width:36px;height:36px;display:grid;place-items:center;font-weight:700}
+.content{padding:28px 30px;max-width:1500px;margin:auto}
+.heading{display:flex;justify-content:space-between;
+align-items:center;gap:15px;flex-wrap:wrap}
+h1{font-size:24px;margin:0 0 7px}
+.sub{font-size:13px;color:var(--muted)}
+.btn{border:0;border-radius:7px;padding:11px 16px;
+font-size:12px;font-weight:700}
+.primary{background:var(--blue);color:white}
+.secondary{background:white;border:1px solid var(--line);color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);
+gap:16px;margin:25px 0}
+.card{background:white;border:1px solid var(--line);
+border-radius:11px;padding:19px}
+.stat-title{font-size:12px;color:var(--muted)}
+.stat-value{font-size:27px;font-weight:750;margin:12px 0 6px}
+.stat-note{font-size:11px;color:var(--green)}
+.stat-icon{float:right;background:#eff3ff;
+padding:9px;border-radius:8px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px}
+.panel{background:white;border:1px solid var(--line);
+border-radius:11px;margin-bottom:18px;overflow:hidden}
+.panel-head{padding:18px 20px;border-bottom:1px solid var(--line);
+display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel-head h3{margin:0;font-size:14px}
+.panel-body{padding:19px}
+.dropzone{border:1.5px dashed #b8c7f5;border-radius:10px;
+background:#f8faff;padding:25px;text-align:center}
+.dropzone strong{display:block;font-size:14px;margin:9px}
+.dropzone p{font-size:12px;color:var(--muted)}
+.dropzone input{display:none}
+.drop-icon{font-size:27px;color:var(--blue)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+th{text-align:left;background:#fafbfc;color:#8490a2;
+font-size:10px;letter-spacing:.6px;padding:13px 15px}
+td{padding:15px;border-top:1px solid var(--line);font-size:12px}
+tr:hover td{background:#fafbff}
+.vendor{font-weight:700}
+.small{font-size:10px;color:var(--muted);margin-top:4px}
+.status{padding:5px 9px;border-radius:20px;
+font-size:10px;font-weight:700;display:inline-block}
+.matched{background:#e5f6ef;color:#13845b}
+.exception{background:#fff0e9;color:#cb6436}
+.pending{background:#fff5df;color:#a87820}
+.review{background:#edf1ff;color:#405fe0}
+.action{background:white;border:1px solid var(--line);
+border-radius:6px;padding:7px 10px;font-size:11px}
+.tabs{display:flex;gap:17px}
+.tab{border:0;background:none;color:var(--muted);
+padding:5px 0;font-size:12px}
+.tab.active{color:var(--blue);font-weight:700;
+border-bottom:2px solid var(--blue)}
+.progress{height:7px;background:#edf0f5;border-radius:10px;
+overflow:hidden;margin:12px 0}
+.progress div{height:100%;background:var(--blue);border-radius:10px}
+.activity{display:flex;gap:12px;padding:12px 0;
+border-bottom:1px solid var(--line)}
+.dot{width:9px;height:9px;border-radius:50%;
+background:var(--green);margin-top:4px;flex-shrink:0}
+.activity strong{font-size:11px}
+.activity p{font-size:10px;color:var(--muted);margin:5px 0}
+.alert{padding:12px;border-radius:8px;background:#fff6e8;
+color:#94641c;font-size:11px;line-height:1.6;margin-bottom:10px}
+.metric{display:flex;justify-content:space-between;
+font-size:11px;margin:13px 0}
+.metric strong{font-size:12px}
+.footer{text-align:center;color:#9aa3b2;font-size:10px;padding:15px}
+.modal{display:none;position:fixed;inset:0;background:#101a3080;
+z-index:10;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-content{background:white;border-radius:12px;
+padding:24px;width:430px;max-width:100%}
+.modal-content h2{font-size:18px}
+.modal-content p{font-size:12px;color:var(--muted);line-height:1.7}
+.close{float:right;border:0;background:none;font-size:20px}
+@media(max-width:1050px){
+ .layout{grid-template-columns:1fr}
+ .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+ .sidebar{width:65px;padding:15px 7px}
+ .brand{font-size:0;padding:10px 5px 25px}
+ .brand span{font-size:19px}
+ .nav{justify-content:center;padding:12px 5px;font-size:0}
+ .nav .ico{font-size:17px}
+ .sidebar .section-label,.sidebar-bottom{display:none}
+ .topbar{padding:0 12px}
+ .content{padding:20px 12px}
+ .stats{gap:9px}
+ .card{padding:13px}
+ .stat-value{font-size:21px}
+ h1{font-size:20px}
+ .user .username{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+ <div class="brand">INVOICE<span>IQ</span></div>
+ <div class="section-label">WORKSPACE</div>
+ <div class="nav active"><span class="ico">▦</span>Dashboard</div>
+ <div class="nav"><span class="ico">▤</span>All Invoices</div>
+ <div class="nav"><span class="ico">⇄</span>Reconciliation</div>
+ <div class="nav"><span class="ico">✓</span>Approvals</div>
+ <div class="nav"><span class="ico">⚑</span>Exceptions</div>
+ <div class="section-label">MANAGEMENT</div>
+ <div class="nav"><span class="ico">▣</span>Purchase Orders</div>
+ <div class="nav"><span class="ico">♧</span>Vendors</div>
+ <div class="nav"><span class="ico">▥</span>Reports</div>
+ <div class="section-label">SYSTEM</div>
+ <div class="nav"><span class="ico">⚙</span>Settings</div>
+ <div class="sidebar-bottom">
+  <strong>INVOICE IQ</strong><br>
+  AI Financial Control Platform<br>
+  Version 1.0
+ </div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+ <input class="search" id="search" placeholder="⌕  Search invoices, vendors...">
+ <div class="user">
+  <span>🔔</span>
+  <div class="avatar">FM</div>
+  <span class="username">Finance Manager</span>
+ </div>
+</header>
+
+<div class="content">
+ <div class="heading">
+  <div>
+   <h1>Invoice Intelligence</h1>
+   <div class="sub">Monitor invoices, reconcile purchase orders and control payments.</div>
+  </div>
+  <button class="btn primary" onclick="document.getElementById('file').click()">＋ Upload Invoice</button>
+ </div>
+
+ <section class="stats">
+  <div class="card">
+   <span class="stat-icon">📄</span>
+   <div class="stat-title">Total Invoices</div>
+   <div class="stat-value" id="total">248</div>
+   <div class="stat-note">↑ 12% this month</div>
+  </div>
+  <div class="card">
+   <span class="stat-icon">✓</span>
+   <div class="stat-title">Successfully Matched</div>
+   <div class="stat-value" id="matched">196</div>
+   <div class="stat-note">79% reconciliation rate</div>
+  </div>
+  <div class="card">
+   <span class="stat-icon">⚠</span>
+   <div class="stat-title">Exceptions Detected</div>
+   <div class="stat-value" id="exceptions">32</div>
+   <div class="stat-note" style="color:var(--red)">Require investigation</div>
+  </div>
+  <div class="card">
+   <span class="stat-icon">💰</span>
+   <div class="stat-title">Invoice Value</div>
+   <div class="stat-value" style="font-size:22px">UGX 842M</div>
+   <div class="stat-note">Current reporting period</div>
+  </div>
+ </section>
+
+ <div class="layout">
+ <section>
+  <div class="panel">
+   <div class="panel-head">
+    <h3>Upload supplier invoice</h3>
+    <span class="status review">AI PROCESSING</span>
+   </div>
+   <div class="panel-body">
+    <label class="dropzone" for="file" style="display:block;cursor:pointer">
+     <div class="drop-icon">☁</div>
+     <strong>Drop your invoice PDF here</strong>
+     <p>Upload PDF documents for automatic AI extraction and PO reconciliation.</p>
+     <span class="btn secondary">Browse files</span>
+     <input id="file" type="file" accept=".pdf,application/pdf" multiple>
+    </label>
+    <div id="uploadStatus" class="small" style="margin-top:12px"></div>
+   </div>
+  </div>
+
+  <div class="panel">
+   <div class="panel-head">
+    <h3>Invoice processing queue</h3>
+    <div class="tabs">
+     <button class="tab active" data-filter="All">All</button>
+     <button class="tab" data-filter="Matched">Matched</button>
+     <button class="tab" data-filter="Exception">Exceptions</button>
+     <button class="tab" data-filter="Pending">Pending</button>
+    </div>
+   </div>
+   <div class="table-wrap">
+    <table>
+     <thead>
+      <tr>
+       <th>INVOICE / VENDOR</th>
+       <th>PO NUMBER</th>
+       <th>AMOUNT</th>
+       <th>STATUS</th>
+       <th>ACTION</th>
+      </tr>
+     </thead>
+     <tbody id="invoiceRows"></tbody>
+    </table>
+   </div>
+   <div class="panel-body small" id="count"></div>
+  </div>
+
+  <div class="panel">
+   <div class="panel-head">
+    <h3>Recent activity</h3>
+    <span class="small">Latest events</span>
+   </div>
+   <div class="panel-body" id="activities">
+    <div class="activity"><span class="dot"></span>
+     <div><strong>Invoice INV-2026-1042 reconciled</strong>
+     <p>ABC Suppliers · PO-2091 · 5 minutes ago</p></div>
+    </div>
+    <div class="activity"><span class="dot" style="background:var(--red)"></span>
+     <div><strong>Price discrepancy detected</strong>
+     <p>Global Supplies · INV-2026-1039 · 18 minutes ago</p></div>
+    </div>
+    <div class="activity"><span class="dot" style="background:var(--amber)"></span>
+     <div><strong>Invoice awaiting approval</strong>
+     <p>MedTech Ltd · INV-2026-1038 · 35 minutes ago</p></div>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <aside>
+  <div class="panel">
+   <div class="panel-head"><h3>AI reconciliation engine</h3>
+   <span class="status matched">ONLINE</span></div>
+   <div class="panel-body">
+    <div class="stat-title">Processing success rate</div>
+    <div class="stat-value">98.4%</div>
+    <div class="progress"><div style="width:98.4%"></div></div>
+    <div class="metric"><span>Invoices extracted</span><strong>248</strong></div>
+    <div class="metric"><span>PO comparisons</span><strong>216</strong></div>
+    <div class="metric"><span>Exceptions flagged</span><strong>32</strong></div>
+    <div class="metric"><span>Pending review</span><strong>20</strong></div>
+   </div>
+  </div>
+
+  <div class="panel">
+   <div class="panel-head"><h3>Attention required</h3></div>
+   <div class="panel-body">
+    <div class="alert">⚠ <strong>12 price mismatches</strong><br>Invoice unit prices exceed PO prices.</div>
+    <div class="alert">⚠ <strong>8 quantity discrepancies</strong><br>Invoice quantities exceed ordered quantities.</div>
+    <div class="alert">⚠ <strong>7 vendor mismatches</strong><br>Vendor details require verification.</div>
+    <div class="alert">⚠ <strong>5 missing purchase orders</strong><br>Invoices cannot be matched.</div>
+   </div>
+  </div>
+
+  <div class="panel">
+   <div class="panel-head"><h3>Approval control</h3></div>
+   <div class="panel-body">
+    <div class="stat-title">Awaiting human approval</div>
+    <div class="stat-value">20</div>
+    <div class="progress"><div style="width:42%;background:var(--amber)"></div></div>
+    <div class="metric"><span>Approved</span><strong>28</strong></div>
+    <div class="metric"><span>Awaiting decision</span><strong>20</strong></div>
+    <button class="btn primary" style="width:100%" onclick="showApproval()">Review approval queue →</button>
+   </div>
+  </div>
+ </aside>
+ </div>
+ <div class="footer">INVOICE IQ · AI-powered financial controls · Human approval required before payment</div>
+</div>
+</main>
+</div>
+
+<div class="modal" id="modal">
+ <div class="modal-content">
+  <button class="close" onclick="closeModal()">×</button>
+  <h2 id="modalTitle">Invoice details</h2>
+  <div id="modalBody"></div>
+  <button class="btn secondary" onclick="closeModal()">Close</button>
+ </div>
+</div>
+
+<script>
+let invoices=[
+ {id:"INV-2026-1042",vendor:"ABC Suppliers",po:"PO-2091",amount:"5,200,000",status:"Matched",note:"Vendor and invoice total match."},
+ {id:"INV-2026-1041",vendor:"Global Supplies",po:"PO-2088",amount:"8,750,000",status:"Exception",note:"Unit price differs from purchase order."},
+ {id:"INV-2026-1040",vendor:"MedTech Ltd",po:"PO-2085",amount:"3,100,000",status:"Pending",note:"Awaiting human approval."},
+ {id:"INV-2026-1039",vendor:"Global Supplies",po:"PO-2082",amount:"4,800,000",status:"Exception",note:"Invoice quantity exceeds PO quantity."},
+ {id:"INV-2026-1038",vendor:"Office Solutions",po:"PO-2079",amount:"1,450,000",status:"Matched",note:"Purchase order reconciliation passed."},
+ {id:"INV-2026-1037",vendor:"Fresh Foods Ltd",po:"Missing",amount:"950,000",status:"Exception",note:"No purchase order supplied."}
+];
+let activeFilter="All";
+function render(){
+ const q=document.getElementById('search').value.toLowerCase();
+ const filtered=invoices.filter(x=>
+  (activeFilter==="All"||x.status===activeFilter)&&
+  (x.vendor.toLowerCase().includes(q)||x.id.toLowerCase().includes(q)||x.po.toLowerCase().includes(q))
+ );
+ document.getElementById('invoiceRows').innerHTML=filtered.map((x,i)=>`
+ <tr>
+ <td><div class="vendor">${x.id}</div><div class="small">${x.vendor}</div></td>
+ <td>${x.po}</td><td>UGX ${x.amount}</td>
+ <td><span class="status ${x.status.toLowerCase()}">${x.status}</span></td>
+ <td><button class="action" onclick="details('${x.id}')">View</button></td>
+ </tr>`).join('');
+ document.getElementById('count').textContent=filtered.length+" invoices displayed";
+}
+document.querySelectorAll('.tab').forEach(b=>{
+ b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');activeFilter=b.dataset.filter;render();
+ };
+});
+document.getElementById('search').addEventListener('input',render);
+function details(id){
+ const x=invoices.find(a=>a.id===id);
+ document.getElementById('modalTitle').textContent=x.id;
+ document.getElementById('modalBody').innerHTML=`
+ <p><strong>Vendor:</strong> ${x.vendor}</p>
+ <p><strong>Purchase order:</strong> ${x.po}</p>
+ <p><strong>Invoice amount:</strong> UGX ${x.amount}</p>
+ <p><strong>Reconciliation:</strong> ${x.status}</p>
+ <p><strong>System findings:</strong> ${x.note}</p>
+ <p>Human verification is required before accounting posting.</p>
+ ${x.status!=="Matched"?'<button class="btn primary" onclick="approve(\''+x.id+'\')">Mark reviewed</button>':''}`;
+ document.getElementById('modal').classList.add('show');
+}
+function approve(id){
+ const x=invoices.find(a=>a.id===id);
+ x.status="Pending";
+ render();closeModal();
+ activity("Invoice "+id+" marked for human approval.");
+}
+function showApproval(){
+ const pending=invoices.filter(x=>x.status!=="Matched");
+ document.getElementById('modalTitle').textContent="Approval review queue";
+ document.getElementById('modalBody').innerHTML=pending.length?
+ pending.map(x=>`<p><strong>${x.id}</strong><br>${x.vendor} · UGX ${x.amount}<br>${x.note}</p>`).join(''):
+ "No invoices currently require review.";
+ document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function activity(message){
+ const el=document.getElementById('activities');
+ const item=document.createElement('div');
+ item.className='activity';
+ const dot=document.createElement('span');
+ dot.className='dot';
+ const content=document.createElement('div');
+ const strong=document.createElement('strong');
+ strong.textContent=message;
+ const p=document.createElement('p');
+ p.textContent='Just now';
+ content.append(strong,p);item.append(dot,content);
+ el.prepend(item);
+}
+document.getElementById('file').addEventListener('change',e=>{
+ const files=Array.from(e.target.files);
+ if(!files.length)return;
+ const status=document.getElementById('uploadStatus');
+ files.forEach(file=>{
+  if(file.type!=='application/pdf'){
+   status.textContent='Only PDF files are supported: '+file.name;
+   return;
+  }
+  status.textContent='Selected: '+file.name+' — Demo interface only. Connect the n8n webhook to process this invoice.';
+  activity('Invoice uploaded: '+file.name);
+ });
+});
+render();
+</script>
+</body>
+</html>
